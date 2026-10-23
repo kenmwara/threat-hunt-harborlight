@@ -1,3 +1,5 @@
+<!-- banner --><a href="https://github.com/kenmwara"><img src="https://raw.githubusercontent.com/kenmwara/kenmwara/main/assets/brand/card-harborlight.png?v=4a116bc4" width="100%" alt="Harborlight: Akira ransomware at a dental practice, traced from a phishing ISO to the domain controller. 46/46 flags · first to finish."></a>
+
 # Threat Hunt Report: Hunt 22 "Harborlight" (HL-INC-2026-0204)
 
 A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (Hunt 22, "Harborlight"): a ransomware
