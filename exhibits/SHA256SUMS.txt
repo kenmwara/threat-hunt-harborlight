@@ -1,0 +1,11 @@
+1358d9069868055b93f0113f64f7f391dfd71a0885c0c4fb6fa397c6a0b08d6b  E1-the-two-lures-and-the-first-execution-20261023.png
+ee149339222edf9b423a0e67389c923ad96469a2ec4deaec91b445293033fdf4  E2-uac-bypass-through-fodhelper-20261023.png
+b05c3b38f1d729dc2635260c1537eff6dad86b56c27fcbf378051eb8900686f9  E3-injection-into-the-print-spooler-and-ful-20261023.png
+a39060e486c0fd7ab8c01ee22df07f6c30407349abe56e314f54aae8813c88a2  E4-admin-shares-wmi-and-the-copy-to-mega-20261023.png
+4d664b5fd0d3f496ba36d03b035f1c26f36addc59c19daa5e019db436d47b631  E5-anti-recovery-the-ad-database-copy-and-l-20261023.png
+7e6fe88f2241862a74f2cd3669bb7fd483646bda56f64cbdf60775dda1d98f67  E6-encryption-the-new-domain-admin-and-beac-20261023.png
+ed66c3a566ef35265a187a01e8cd1213a67b7f0e4789e465589e35cab70066ac  E7-after-the-encryption-the-consoles-anydes-20261023.png
+1c506b8a2fed7512fe65a83a3e9fd84b487f72e2061273e69b335ae849aa7ff2  E8-detection-replay-eleven-rules-on-the-who-20261023.png
+0dc571b80ef6d4914a268faa296e7de629903d5eef2afd0898db8ef59b3314b6  E9-the-dataset-rows-by-host-and-source-20261023.png
+53fb40392f8cb6b7f61cbc8d265c0588d89e3efcfa1bfdb6a11e287733ff1856  E10-what-defender-and-powershell-logging-saw-20261023.png
+e09e7c6f72cc4ab725169df6f5e2d9d3d45d0d729d8920c1c3c1fb015eeb33c8  E11-hl-fs01-s-beacons-per-hour-around-the-13-20261023.png
