@@ -275,6 +275,9 @@ file server destroyed. Legal decides on notification.
 
 ## 11. ATT&CK coverage
 
+Hunted, not observed: T1219 Remote Access Software (AnyDesk was installed before the intrusion; attacker use is not
+shown, F10); T1090.004 Domain Fronting (Cloudflare addresses only; fronting cannot be told from ordinary proxying here).
+
 | Stage | ATT&CK | Status |
 |---|---|---|
 | Initial access | T1566 Phishing (the download is logged; how it reached her is not) | Download observed; delivery inferred |
@@ -288,9 +291,6 @@ file server destroyed. Legal decides on notification.
 | Exfiltration | T1567.002 Exfiltration to Cloud Storage | Observed; volume not determined (B1) |
 | Persistence | T1547.001 Registry Run Keys; T1053.005 Scheduled Task; T1136.002 Domain Account; T1098.007 Additional Local or Domain Groups | Observed |
 | Impact | T1486 Data Encrypted for Impact; T1490 Inhibit System Recovery; T1489 Service Stop | Observed |
-
-Hunted, not observed: T1219 Remote Access Software (AnyDesk was installed before the intrusion; attacker use is not
-shown, F10); T1090.004 Domain Fronting (Cloudflare addresses only; fronting cannot be told from ordinary proxying here).
 
 ## 12. Detection and telemetry gaps
 
