@@ -1,10 +1,10 @@
-<!-- banner --><a href="https://github.com/kenmwara"><img src="https://raw.githubusercontent.com/kenmwara/kenmwara/main/assets/brand/card-harborlight.png?v=8570d352" width="100%" alt="Harborlight: Akira ransomware at a dental practice, traced from a phishing ISO to the domain controller. 46/46 flags · first to finish."></a>
+<!-- banner --><a href="https://github.com/kenmwara"><img src="https://raw.githubusercontent.com/kenmwara/kenmwara/main/assets/brand/card-harborlight.png?v=5a7f1e4b" width="100%" alt="Harborlight: Akira ransomware at a dental practice, traced from a phishing ISO to the domain controller. 46/46 flags · 4,060 / 4,190, on time."></a>
 
 # Threat Hunt Report: Hunt 22 "Harborlight" (Akira ransomware at a dental and insurance practice, HL-INC-2026-0204)
 
-A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (Hunt 22, "Harborlight"): human-operated ransomware at a dental and insurance practice, traced from one phishing download on a front-office workstation to the file server and the domain controller, from Sysmon, Windows Security, PowerShell and Defender logs with KQL. All 46 flags, finished on time, first to finish. Published after the hunt closed on 13 October 2026; this is version 3.1 (23 October 2026): my 17-section format, every finding re-run on the same dataset, eleven detections replayed, exhibits E1–E11. The designed copy is in the repo: [Hunt22-Harborlight-Report.pdf](Hunt22-Harborlight-Report.pdf).
+A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (Hunt 22, "Harborlight"): human-operated ransomware at a dental and insurance practice, traced from one phishing download on a front-office workstation to the file server and the domain controller, from Sysmon, Windows Security, PowerShell and Defender logs with KQL. All 46 flags, finished on time. Published after the hunt closed on 13 October 2026; this is version 3.1 (23 October 2026): my 17-section format, every finding re-run on the same dataset, eleven detections replayed, exhibits E1–E11. The designed copy is in the repo: [Hunt22-Harborlight-Report.pdf](Hunt22-Harborlight-Report.pdf).
 
-**Analyst:** Ken Kariuki · **Live hunt:** 3 October 2026 · **Result:** 46 of 46 flags, 4,060 / 4,190 points, completed on time (first finisher on the scoreboard at completion)
+**Analyst:** Ken Kariuki · **Live hunt:** 3 October 2026 · **Result:** 46 of 46 flags, 4,060 / 4,190 points, completed on time
 
 ## 1. Front matter
 
@@ -13,7 +13,7 @@ A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (H
 | Hunt | Cyber Range Hunt 22, "Harborlight" (HL-INC-2026-0204) |
 | Author | Ken Kariuki |
 | Version | v3.1, 2026-10-23 |
-| Result | 46 of 46 flags, 4,060 / 4,190 points, on time; first finisher on the scoreboard |
+| Result | 46 of 46 flags, 4,060 / 4,190 points, on time |
 | Classification | TLP:CLEAR (simulated range data; the hunt closed on 2026-10-13) |
 | Distribution | Public |
 
