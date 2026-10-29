@@ -2,7 +2,7 @@
 
 # Threat Hunt Report: Hunt 22 "Harborlight" (Akira ransomware at a dental and insurance practice, HL-INC-2026-0204)
 
-A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (Hunt 22, "Harborlight"): human-operated ransomware at a dental and insurance practice, traced from one phishing download on a front-office workstation to the file server and the domain controller, from Sysmon, Windows Security, PowerShell and Defender logs with KQL. All 46 flags, finished on time. Published after the hunt closed on 13 October 2026; this is version 3.1 (23 October 2026): my 17-section format, every finding re-run on the same dataset, eleven detections replayed, exhibits E1–E11. The designed copy is in the repo: [Hunt22-Harborlight-Report.pdf](Hunt22-Harborlight-Report.pdf).
+A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (Hunt 22, "Harborlight"): human-operated ransomware at a dental and insurance practice, traced from one phishing download on a front-office workstation to the file server and the domain controller, from Sysmon, Windows Security, PowerShell and Defender logs with KQL. All 46 flags, finished on time. Published after the hunt closed on 13 October 2026; this is version 3.1 (23 October 2026): a 17-section format, every finding re-run on the same dataset, eleven detections replayed, exhibits E1–E11. The designed copy is in the repo: [Hunt22-Harborlight-Report.pdf](Hunt22-Harborlight-Report.pdf).
 
 **Analyst:** Ken Kariuki · **Live hunt:** 3 October 2026 · **Result:** 46 of 46 flags, 4,060 / 4,190 points, completed on time
 
@@ -311,13 +311,23 @@ A password reset alone changes nothing: the domain admin, the AD copy and the im
 | The server behind `cloud-endpoint.net` | Passive DNS; a Cloudflare abuse report |
 | Who was at the consoles at 13:44 and 13:49 | MSP tickets and on-call records |
 
-## 16. AI tools declaration
+## 16. Methodology: AI-assisted analysis
 
-I ran this hunt as the lead analyst and used Claude (Anthropic), through Claude Code, as my AI tooling.
+Analysis was AI-assisted (Claude, Anthropic, through Claude Code) under the direction of the lead analyst. Every
+finding was verified against the source telemetry before acceptance.
 
-- **The live hunt (3 October).** Claude drafted KQL and ran it in an Advanced Hunting tab in my signed-in browser, then returned the raw results. Where its browser tool refused credential-access and anti-recovery queries, I ran the drafted KQL in my own tab. I set the order of the pivots, checked each answer against its raw result and submitted every answer myself. I used two paid wording hints (15 points each) and one reveal, on the anti-recovery repeat flag, where the grader rejected an answer the data and the hints supported (reported to staff).
-- **This version (23 October).** Claude restructured the report into the 17-section format I now use for live hunts, re-ran every exhibit query and all eleven detection rules against the same dataset through the range's Log Analytics query tool, drafted the new sections, and found the Windows Security, PowerShell and Defender evidence that v2 had not used. I reviewed each new finding against its exhibit and approved all text.
-- **Data handling.** I signed in to every portal myself; no passwords or keys were given to the AI. The passwords in the attacker's command lines are masked in every exhibit.
+- **Live hunt (3 October).** KQL was drafted with AI assistance and executed in Microsoft Defender Advanced Hunting
+  in the analyst's authenticated session; raw results were returned for review. Queries the assistant's browser tool
+  declined (credential-access and anti-recovery) were executed manually. Pivot order, answer validation and every
+  submission were performed by the analyst. Two paid wording hints (15 points each) and one reveal were used; the
+  reveal concerned an anti-recovery flag where the grader rejected an answer supported by the data and the hints
+  (reported to staff).
+- **Version 3 (23 October).** The report was restructured into a 17-section format; every exhibit query and all eleven
+  detection rules were re-run against the same dataset through the range's Log Analytics query tool, and Windows
+  Security, PowerShell and Defender evidence not used in v2 was added. Each new finding was reviewed against its
+  exhibit before inclusion.
+- **Data handling.** All portal sign-ins were performed by the analyst; no passwords or keys were provided to the AI.
+  Passwords in attacker command lines are masked in every exhibit.
 
 ## 17. Appendices
 
