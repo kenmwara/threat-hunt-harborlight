@@ -36,8 +36,8 @@ lines are masked.
 
 ## 2. Executive summary
 
-**Bottom line.** One phishing download gave an operator the whole domain in just over three hours. They stole the
-shared files to MEGA, encrypted all three hosts and left a new domain admin behind, and the domain controller was still
+**Bottom line.** One phishing download gave an attacker control of the whole company network in just over three hours. They copied the
+shared files to a file-sharing site (MEGA), encrypted all three computers and left a new admin account behind, and the main server was still
 under their control when the data ends. Severity: Critical.
 
 | Hosts encrypted | Data to MEGA | Alerts acted on | New domain admin |
@@ -68,7 +68,7 @@ notification for the patient and claims data on `C:\Shares`.
 | Analyst | Ken Kariuki, lead analyst, with AI tooling (§16) |
 | Severity | Critical: human-operated ransomware with data theft and domain compromise (Confidence: High) |
 
-## 4. Hypothesis and ABLE
+## 4. What the hunt set out to prove (hypothesis and ABLE)
 
 **Hypothesis.** A phishing download gave an operator a foothold, which Emily's own credentials widened to the file server
 and the domain controller, ending in data theft and encryption.
@@ -82,13 +82,13 @@ and the domain controller, ending in data theft and encryption.
 
 Tested against (§10): H1 insider, H2 the MSP's own work, H3 commodity malware with no operator, H4 encryption without theft.
 
-## 5. Threat intel inputs
+## 5. What was already known about the attacker
 
 The range brief set the scene. CISA and FBI advisory AA24-109A ("#StopRansomware: Akira Ransomware", updated 2025-11-13)
 lists rclone to MEGA, remote tools such as AnyDesk and vssadmin shadow-copy deletion. The chain matches in broad strokes
 (similarity, not attribution; Confidence: Low); every indicator here comes from the logs.
 
-## 6. Scope, data sources and blind spots
+## 6. What was searched, and what couldn't be seen
 
 | Source | Rows | Coverage |
 |---|---|---|
@@ -106,7 +106,7 @@ lists rclone to MEGA, remote tools such as AnyDesk and vssadmin shadow-copy dele
 - **B5** No AnyDesk or MSP logs: who used AnyDesk is unknown.
 - **B6** The data ends at 18:47:29 with the DC still beaconing.
 
-## 7. Execution
+## 7. How the hunt was run
 
 **Method.** The live hunt worked the 46 questions in order, checking each answer against the raw rows before submitting
 it (§16). Version 3 re-ran every finding on 2026-10-23 and saved each query with its output as an exhibit (E1–E11).
@@ -204,7 +204,7 @@ in at 13:49 and read AnyDesk's log; the PC was powered off at 14:27. The DC was 
 | A workstation beacon after the quarantine | None after 09:23:49 |
 | The AD database copy leaving the DC | None logged (B1) |
 
-## 10. Hypothesis outcome
+## 10. Was the hypothesis right?
 
 **Confirmed:** phishing foothold, credential reuse to both servers, theft to MEGA, AD database copy and encryption of all
 three hosts (E1–E6). **Not determined:** how much reached MEGA, whether the AD copy left the DC, and who was at the
@@ -232,7 +232,7 @@ consoles (B1, B5).
 database copy exposes every domain credential. `C:\Shares` left for MEGA and is treated as patient and claims data. The
 file server cannot recover locally. Legal decides on notification.
 
-## 11. ATT&CK coverage
+## 11. Attacker techniques seen (MITRE ATT&CK)
 
 Hunted, not observed: T1219 Remote Access Software (AnyDesk predates the intrusion, F10) and T1090.004 Domain Fronting
 (Cloudflare addresses only).
@@ -250,7 +250,7 @@ Hunted, not observed: T1219 Remote Access Software (AnyDesk predates the intrusi
 | Persistence | T1547.001 Run Keys; T1053.005 Scheduled Task; T1136.002 Domain Account; T1098.007 Domain Groups |
 | Impact | T1486 Encryption; T1490 Inhibit Recovery; T1489 Service Stop |
 
-## 12. Detection and telemetry gaps
+## 12. Gaps in alerts and logging
 
 Every fix is proposed to Coastal MSP.
 
@@ -269,7 +269,7 @@ Every fix is proposed to Coastal MSP.
 | The responder signed in before isolating | Runbook: isolate first; no privileged sign-ins | A tabletop isolates first |
 | R3 and R7 skip any "Windows Defender" path | Exclude only `\Windows Defender\Platform\`, by signer | A replay flags the fake `MsMpEng.exe` |
 
-## 13. New detections
+## 13. New alert rules
 
 All eleven were replayed on the whole dataset (E8). R1–R7 return the v2 counts; R8–R11 are new. No rule fires on the day's
 ordinary background, a thin baseline, so all eleven stay proposed.
