@@ -8,7 +8,7 @@ A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (H
 
 ## Key takeaways
 
-<img src="images/scorecard.png" width="100%" alt="Key takeaways. One phishing download gave an operator the whole domain in just over three hours. 3 h 25 m: Phish to domain admin. Archive opened at 01:57 UTC; svc_sql in Domain Admins at 05:22. 3 of 3: Hosts encrypted. 128 ransom notes and 27 files (E6); shared files sent to MEGA first. 0: Alerts acted on. Defender quarantined one implant at 09:24 itself; nobody saw it. 11: Detections replayed. Each re-run against the dataset, with a fix for every gap found. 46 / 46: Flags, on time. 4,060 of 4,190 points in the live community hunt.">
+<img src="images/scorecard.png" width="100%" alt="Key takeaways. One bad download gave an attacker the whole network in just over three hours. 3 h 25 m: From one click to full control. A staff member opened a phishing file at 01:57. By 05:22 the attacker had made a new admin account. 3 of 3: Every computer locked. Ransomware encrypted all three machines, after the shared files had been copied out. 0: Alerts anyone acted on. Security software caught one piece of the attack hours later, and nobody saw the alert. 11: Alert rules tested. Each rule was re-run on the evidence, with a fix for every blind spot found. 46 / 46: Every question answered. All 46 investigation flags found, on time.">
 
 ## 1. Front matter
 
