@@ -6,6 +6,10 @@ A [Cyber Range](https://www.skool.com/cyber-range) live community threat hunt (H
 
 **Analyst:** Ken Kariuki · **Live hunt:** 3 October 2026 · **Result:** 46 of 46 flags, 4,060 / 4,190 points, completed on time
 
+## Key takeaways
+
+<img src="images/scorecard.png" width="100%" alt="Key takeaways. One phishing download gave an operator the whole domain in just over three hours. 3 h 25 m: Phish to domain admin. Archive opened at 01:57 UTC; svc_sql in Domain Admins at 05:22. 3 of 3: Hosts encrypted. 128 ransom notes and 27 files (E6); shared files sent to MEGA first. 0: Alerts acted on. Defender quarantined one implant at 09:24 itself; nobody saw it. 11: Detections replayed. Each re-run against the dataset, with a fix for every gap found. 46 / 46: Flags, on time. 4,060 of 4,190 points in the live community hunt.">
+
 ## 1. Front matter
 
 | Field | Value |
